@@ -29,3 +29,34 @@
     sentences))
 
 (def text (read-sentences "HD-CaseStudy-Description.pdf"))
+
+(defn read-stopwords []
+  (with-open [rdr (clojure.java.io/reader "SmartStoplist.txt")]
+    (into #{} (line-seq rdr))))
+
+(defn stopword? [stopwords word]
+  (get stopwords (.toLowerCase word)))
+
+(defn candidates [words stopwords]
+  (remove (partial stopword? stopwords) words))
+
+(defn phrases [sentences]
+  (->> sentences
+       (mapcat tokenize)
+       pos-tag
+       chunker))
+
+(defn noun-phrases [stopwords phrases]
+  (->> phrases
+       (filter #(= (:tag %) "NP"))
+       (map :phrase)
+       (map #(remove (partial stopword? stopwords) %))
+       (remove empty?)))
+
+(defn sorted-phrases [sentences]
+  (->> sentences
+      phrases
+      (noun-phrases #{"." "," ";" ":" "!" "?"})
+      frequencies
+      (sort-by second)
+      reverse))
